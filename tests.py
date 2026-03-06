@@ -84,3 +84,64 @@ def test_capacity_zero_all_waitlisted_and_promotion_never_happens():
 #################################################################################
 # Add your own additional tests here to cover more cases and edge cases as needed.
 #################################################################################
+
+# EC1: capacity = 0
+def test_edge_case_capacity_zero():
+    er = EventRegistration(capacity=0)
+
+    assert er.register("u1") == UserStatus("waitlisted", 1)
+    assert er.register("u2") == UserStatus("waitlisted", 2)
+
+    assert er.snapshot()["registered"] == []
+
+
+# EC2: duplicate registration
+def test_edge_case_duplicate_registration():
+    er = EventRegistration(capacity=2)
+
+    er.register("u1")
+
+    with pytest.raises(DuplicateRequest):
+        er.register("u1")
+
+
+# EC3: registered user cancels with waitlist
+def test_edge_case_promotion_after_cancel():
+    er = EventRegistration(capacity=1)
+
+    er.register("u1")
+    er.register("u2")
+
+    er.cancel("u1")
+
+    assert er.status("u2") == UserStatus("registered")
+
+
+# EC4: waitlisted user cancels
+def test_edge_case_waitlist_cancel():
+    er = EventRegistration(capacity=1)
+
+    er.register("u1")
+    er.register("u2")
+
+    er.cancel("u2")
+
+    assert er.status("u2") == UserStatus("none")
+
+def test_reregister_after_cancel():
+    er = EventRegistration(capacity=1)
+
+    # user registers
+    er.register("u1")
+
+    # user cancels
+    er.cancel("u1")
+
+    # user should be able to register again
+    status = er.register("u1")
+
+    assert status == UserStatus("registered")
+
+    snap = er.snapshot()
+    assert snap["registered"] == ["u1"]
+    assert snap["waitlist"] == []
