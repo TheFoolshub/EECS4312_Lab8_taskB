@@ -1,0 +1,224 @@
+Promblem understanding:
+
+{The system is for registering users for a single event with a finite capacity. Users can register f
+or the event until the capacity is reached, at which point they are placed on a waitlist. If a user cancels their registration, the next user on 
+the waitlist is added to the registered list. All operations within the system must be deterministic.}
+
+
+Assumptions:
+
+{Each user has a unique user_id.
+The system manages only one event at a time.
+The capacity for the event is set when the system starts.
+Operations are processed in the order that they are sent.
+Each user exists in only one state at a time.
+The waitlist follows a first come, first served ordering.}
+
+inputs:
+{capacity- type: integer- valid formats: Non-negative whole number
+
+userid- type: String/Integer, could be either of both however string probably works better as then we can use abc and 123 - format: any unique string not already used , cannot have duplicate unserid strings 
+
+command - type: String  - valid format: command keywords like cancel or status 
+
+request- type:  user request- valid format: userid + command , ex User request to cancel or request status }
+
+outputs:{The system shall also return the current registration statu
+s of the user following each operation. Such a response will indicate whether the user is registered,
+waitlisted (with their position in the waitlist), or not in the system at all, as well as provide the updated state of the registered list and waitlist.}
+
+funcitonal requirements:
+{System shall allow users to register for an event with a fixed capacity
+System shall add users to the registered list if the event capacity has not been reached
+System shall place users on a waitlist if the event capacity has been reached
+System shall automatically promote the user at the top of the waitlist if a registered user cancels
+System shall prevent duplicate registrations of users for events
+System shall allow users to cancel their registration or waitlist request for an event
+System shall allow users to view their registration status for events}
+
+
+
+constaint:
+{
+1. the  number of users registered for the event should not reach more than the available capacity 
+2. Each user should only appear once in the event registration
+3. the waitlist must follow FIFO order 
+4. a user must either be in a registered user list or a waitlist, cannot be in both at the same time 
+5.  if a registered user cancels there registration the earliest waitlist user must be moved to the registered registration list 
+6. event capacity must be a non negative value 
+ persona contraint :
+c1
+
+Persona: Mo
+Attribute: Gets stressed out by arbitrary outcomes from systems
+Attribute type: Pain Point
+Constraint: System must have consistent operation with repeated/rapid user operations
+Current support level: Fully supported by Lab 8 system
+
+c2
+
+Persona: Jane
+Attribute: Prefers if the system has deterministic behavior
+Type: Need
+Operationalization: Converted into constraint
+Constraint: The system must ensure that all registered and waitlisted users are processed in a deterministic manner such that the same actions result in the same outcome from the system.
+Support: Fully supported by Lab 8 system
+
+c3
+
+Persona: Mo
+Attribute: Needs clear explanations for system decisions
+Attribute type: Need
+Constraint: The system must indicate when a user cannot perform an action (e.g., registering when already registered, cancelling a user not in the system)
+Current support level: not supported by Lab 8 system(
+While the Lab 8 code presents exceptions such as DuplicateRequest and NotFound, there are no messages provided to the user that explain the reason for the failure of the action that raised the exception.)
+
+c4
+
+Persona: Jane
+Attribute: Trusts the system to automatically resolve conflicts
+Type: Behavior
+Operationalization: Converted into constraint
+Constraint: The system must automatically promote the earliest user on the waitlist if a registered user cancels their reservation.
+Support: Fully supported by Lab 8 system
+
+c5
+
+Persona: Mo
+Attribute: Prefers explicit failure for edge cases rather than silent failure
+Attribute type: Need
+Constraint: System must explicitly handle edge cases (duplicates registrations, cancelling users not in system, events with zero capacity)
+Current support level: Fully supported by Lab 8 system
+
+c6
+
+Persona: Jane
+Attribute: Does not like receiving too many system notifications
+Type: Pain Point
+Operationalization: Converted into constraint
+Constraint: The system should not produce duplicate outputs or messages from the system
+Support: not supported by Lab 8 system(The system implemented does not control the messaging component of the system. Thus, 
+it has no control over messaging and would not be able to ensure that duplicate outputs are not sent to the users.)
+}
+
+accepted criteria {
+ac1:
+Given an event with capacity greater than the number of registered users
+When a new user registers
+Then the user is added to the registered list
+Linked Constraint ID(s): C1
+
+ac2:
+Given the event capacity has been reached
+When a new user registers
+Then the user is placed at the end of the waitlist following FIFO order
+Linked Constraint ID(s): C1
+
+ac3
+Given a registered user cancels their registration
+When there are users in the waitlist
+Then the earliest waitlisted user is automatically promoted to the registered list
+Linked Constraint ID(s): C2
+
+ac4
+Given a user already exists in the system
+When the user attempts to register again
+Then the system rejects the request
+Linked Constraint ID(s): C4, C6
+
+ac5
+Given a user attempts to cancel a registration that does not exist
+When the cancel operation is executed
+Then the system raises a NotFound error
+Linked Constraint ID(s): C4, C6
+
+ac6
+Given an event with capacity equal to zero
+When users attempt to register
+Then all users are placed on the waitlist and none are registered
+Linked Constraint ID(s): C6
+}
+
+edge case {
+EC1:
+Description: Test case where the capacity is set to 0 and users attempt to register.
+Linked Constraint ID(s): C1, C6
+Covered by Acceptance Criteria ID(s): AC6
+
+EC2:
+Description: Test case where a user attempts to register more than once.
+Linked Constraint ID(s): C2
+Covered by Acceptance Criteria ID(s): AC4
+
+EC3:
+Description: Test case where a user cancels registration and other users have registered and are on the waitlist.
+Linked Constraint ID(s): C3, C5
+Covered by Acceptance Criteria ID(s): AC3
+
+EC4:
+Description: Test case where a user is on the waitlist for a flight but cancels their request before they are added to the registered user list.
+Linked Constraint ID(s): C4
+Covered by Acceptance Criteria ID(s): AC5
+
+EC5:
+Description: Test case where a user attempts to cancel a registration that does not exist in the system.
+Linked Constraint ID(s): C4, C6
+Covered by Acceptance Criteria ID(s): AC5
+
+EC6:
+Description: Test case where multiple users attempt to register for the same flight when there is only one available slot.
+Linked Constraint ID(s): C1, C5
+Covered by Acceptance Criteria ID(s): AC1, AC2
+}
+
+tracebility {
+
+Constraint ID	Derived From Where	Linked AC IDs	Linked Test Name(s)
+C1	 predictable system behavior	AC1, AC2	capacity_test
+C2	automatic conflict handling	AC3	promotion_test
+C3	consistent system ordering	AC3	waitlist_order_test
+C4	clear handling of invalid actions	AC4, AC5	duplicate_request_test
+C5	 consistent behavior during updates	AC3	waitlist_update_test
+C6	explicit edge case handling	AC6	zero_capacity_test
+
+
+
+
+
+
+
+
+revision notes:
+{
+Revision Note 1
+
+Updated requirement: Deterministic processing of user operations
+
+Reason: During review of the requirements, the LLM identified that this requirement was somewhat ambiguous regarding rapid or repeated operations.
+
+New action: Operations must be processed sequentially and deterministically.
+
+Revision Note 2
+
+Updated requirement: Error handling for invalid user actions
+
+Reason: Analysis of the persona for the application indicates that it is important to be able to explain to the user when an action is invalid and cannot be performed.
+
+New action: Invalid operations (such as attempting to register a user that already exists or cancelling a user that does not exist) must raise errors.
+
+Revision Note 3
+
+Updated requirement: Waitlist processing after a user cancels
+
+Reason: During review of the requirements, the LLM indicated that the behavior of the waitlist in the case of a user cancelling their registration was not specifically defined.
+
+New action: After a user cancels their registration, all users in the waitlist move forward in the registration process.
+
+Revision Note 4
+
+Updated requirement: System handling of edge cases
+
+Reason: During review of the constraints and acceptance criteria, several edge cases were recognized as not being specifically defined.
+
+New action: Handle the following edge cases: when there is zero capacity for events, if registrations are submitted for the same user, and if a user is cancelled from an event that they did not register for.
+}
