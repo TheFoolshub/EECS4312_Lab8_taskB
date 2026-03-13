@@ -221,4 +221,12 @@ Updated requirement: System handling of edge cases
 Reason: During review of the constraints and acceptance criteria, several edge cases were recognized as not being specifically defined.
 
 New action: Handle the following edge cases: when there is zero capacity for events, if registrations are submitted for the same user, and if a user is cancelled from an event that they did not register for.
+
+Revision Note 5
+
+Requirement reviewed: Deterministic processing of user operations
+
+Reason: Additional test cases were created to test for the determinism of the system’s processing of various user operations. These test cases helped to ensure that the system enforces a waitlist promotion process that is consistent with the FIFO ordering of customers who have ordered the desired products.
+
+Action: No changes are necessary to the system or requirements as a result of these test cases. The requirements and constraints on the system ensure that its operation will be deterministic.
 }
