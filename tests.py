@@ -145,3 +145,71 @@ def test_reregister_after_cancel():
     snap = er.snapshot()
     assert snap["registered"] == ["u1"]
     assert snap["waitlist"] == []
+
+
+    ######################################################################
+    ##Lab9 
+    ###############################
+    # C2: deterministic system behavior
+# AC1, AC2
+def test_deterministic_behavior_same_sequence():
+    er1 = EventRegistration(capacity=2)
+    er2 = EventRegistration(capacity=2)
+
+    sequence = ["u1", "u2", "u3", "u4"]
+
+    for u in sequence:
+        er1.register(u)
+
+    for u in sequence:
+        er2.register(u)
+
+    # same operations must produce identical system state
+    assert er1.snapshot() == er2.snapshot()
+
+# C3: system must explain invalid actions
+# AC5
+def test_cancel_unknown_user_raises_notfound():
+    er = EventRegistration(capacity=2)
+
+    with pytest.raises(NotFound):
+        er.cancel("unknown_user")
+
+# C1: consistent behavior during repeated operations
+# AC3
+def test_multiple_cancellations_sequential_promotion():
+    er = EventRegistration(capacity=1)
+
+    er.register("u1")
+    er.register("u2")
+    er.register("u3")
+
+    er.cancel("u1")  # promotes u2
+    er.cancel("u2")  # promotes u3
+
+    assert er.status("u3") == UserStatus("registered")
+
+# EC: querying user not in system
+# C3
+def test_status_for_unknown_user():
+    er = EventRegistration(capacity=2)
+
+    status = er.status("ghost")
+
+    assert status == UserStatus("none")
+
+# EC6: multiple users registering when one slot remains
+# C1, C5
+def test_multiple_users_one_remaining_slot():
+    er = EventRegistration(capacity=1)
+
+    s1 = er.register("u1")
+    s2 = er.register("u2")
+    s3 = er.register("u3")
+
+    assert s1 == UserStatus("registered")
+    assert s2 == UserStatus("waitlisted", 1)
+    assert s3 == UserStatus("waitlisted", 2)
+
+    snap = er.snapshot()
+    assert snap["registered"] == ["u1"]
