@@ -1,48 +1,17 @@
 ## Student Name: Ali Ashraf
 ## Student ID: 218990184
 
-"""
-Task B: Event Registration with Waitlist (Stub)
-In this lab, you will design and implement an Event Registration with Waitlist system using an LLM assistant as your primary programming collaborator. 
-You are asked to implement a Python module that manages registration for a single event with a fixed capacity. 
-The system must:
-•	Accept a fixed capacity.
-•	Register users until capacity is reached.
-•	Place additional users into a FIFO waitlist.
-•	Automatically promote the earliest waitlisted user when a registered user cancels.
-•	Prevent duplicate registrations.
-•	Allow users to query their current status.
-
-The system must ensure that:
-•	The number of registered users never exceeds capacity.
-•	Waitlist ordering preserves FIFO behavior.
-•	Promotions occur deterministically under identical operation sequences.
-
-The module must preserve the following invariants:
-•	A user may not appear more than once in the system.
-•	A user may not simultaneously exist in multiple states.
-•	The system state must remain consistent after every operation.
-
-The system must correctly handle non-trivial scenarios such as:
-•	Multiple cancellations in sequence.
-•	Users attempting to re-register after canceling.
-•	Waitlisted users canceling before promotion.
-•	Capacity equal to zero.
-•	Simultaneous or rapid consecutive operations.
-•	Queries during state transitions.
-
-The output consists of the updated registration state and ordered lists of registered and waitlisted users after each operation.
-"""
-
 from dataclasses import dataclass
 from typing import List, Optional
 
 
 class DuplicateRequest(Exception):
+    """Raised when a user attempts to register more than once."""
     pass
 
 
 class NotFound(Exception):
+    """Raised when a user cancellation is attempted for a non-existent user."""
     pass
 
 
@@ -57,16 +26,23 @@ class EventRegistration:
     def __init__(self, capacity: int) -> None:
         # Constraint C6: capacity must be non-negative
         if capacity < 0:
-            raise ValueError("capacity must be non-negative")
+            raise ValueError("Event capacity must be a non-negative value.")
 
         self.capacity = capacity
         self.registered: List[str] = []
         self.waitlist: List[str] = []
 
     def register(self, user_id: str) -> UserStatus:
-        # Constraint C2: prevent duplicate users
+        # C2: prevent duplicate registrations
         if user_id in self.registered or user_id in self.waitlist:
-            raise DuplicateRequest()
+            raise DuplicateRequest(
+                f"User '{user_id}' is already registered or waitlisted."
+            )
+
+        # AC6: capacity = 0 → everyone waitlisted
+        if self.capacity == 0:
+            self.waitlist.append(user_id)
+            return UserStatus("waitlisted", len(self.waitlist))
 
         # AC1: register if capacity available
         if len(self.registered) < self.capacity:
@@ -79,7 +55,7 @@ class EventRegistration:
 
     def cancel(self, user_id: str) -> None:
 
-        # If registered → remove and promote waitlisted user
+        # Registered user cancellation
         if user_id in self.registered:
             self.registered.remove(user_id)
 
@@ -90,13 +66,13 @@ class EventRegistration:
 
             return
 
-        # If waitlisted → remove from waitlist
+        # Waitlisted user cancellation
         if user_id in self.waitlist:
             self.waitlist.remove(user_id)
             return
 
-        # Edge case: cancel unknown user
-        raise NotFound()
+        # C3 + AC5: explicit failure explanation
+        raise NotFound(f"User '{user_id}' does not exist in the system.")
 
     def status(self, user_id: str) -> UserStatus:
 
@@ -107,6 +83,7 @@ class EventRegistration:
             position = self.waitlist.index(user_id) + 1
             return UserStatus("waitlisted", position)
 
+        # explicit status
         return UserStatus("none")
 
     def snapshot(self) -> dict:
